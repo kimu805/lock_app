@@ -37,17 +37,22 @@ class MembersController < ApplicationController
   # PATCH/PUT /members/1 or /members/1.json
   def update
     respond_to do |format|
-      if @member.update(member_params)
-        format.html { redirect_to @member, notice: "Member was successfully updated." }
-        format.json { render :show, status: :ok, location: @member }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @member.errors, status: :unprocessable_entity }
+      begin
+        if @member.update(member_params)
+          format.html { redirect_to @member, notice: "Member was successfully updated." }
+          format.json { render :show, status: :ok, location: @member }
+        else
+          format.html { render :edit, status: :unprocessable_entity }
+          format.json { render json: @member.errors, status: :unprocessable_entity }
+        end
+      rescue ActiveRecord::StaleObjectError
+        flash[:alert] = "他のユーザーが変更しました。再度編集してください。"
+        format.turbo_stream { render turbo_stream: turbo_stream.replace("flash", partial: "shared/flash") }
+        format.html { redirect_to @member }
       end
     end
-    rescue ActiveRecord::StaleObjectError
-      render plain: "競合エラーが発生しました。"
   end
+
 
   # DELETE /members/1 or /members/1.json
   def destroy
